@@ -1,0 +1,123 @@
+🎯 🔥 MASTER PROMPT — SAME FLOW, MULTIPLE UI REPRESENTATIONS
+🧠 Objective
+
+Build a real-time fintech dashboard UI system where a single transaction flow pipeline is represented across multiple UI components simultaneously, all driven by the same data source.
+
+🔗 CORE CONCEPT (VERY IMPORTANT)
+
+There is ONE event flow:
+
+Dispatcher → Scenario → Payload → Connect → Event Store
+
+This flow must be visualized in different UI components, but all must stay perfectly synchronized using shared state.
+
+🧩 REQUIRED UI COMPONENTS
+1. 🧱 Architecture Diagram (System View)
+Show pipeline as connected nodes:
+Dispatcher (green)
+Scenario (blue)
+Payload (red)
+Connect (amber vertical)
+Add:
+Kafka topic nodes below
+Event Store (capsule shape) at bottom
+Show:
+Success / error counts per node
+Include:
+Animated flow between nodes
+2. 📊 Live Event Stream (Transaction View)
+Each transaction is a row
+Show:
+Transaction ID (GBM-XXXXX)
+Type (FX_TRADE, etc.)
+Pipeline progress (step-by-step)
+Highlight:
+Active stage (blue)
+Completed (green)
+Failed (red)
+3. 🚨 Incident Monitor (Error View)
+Right-side panel
+Show only failed transactions
+Each card includes:
+Transaction ID
+Failed stage (source)
+Timestamp
+Error message
+LIFO order (latest first)
+4. 🧾 Kafka Log Panel (System Trace)
+Bottom panel (dark theme)
+Show logs like:
+[HH:MM:SS] INGEST >> [TX_ID] Topic: T24.RAW | Type: FX_TRADE
+Auto-scroll enabled
+5. 📊 Header Metrics
+Total Volume
+Health %
+Active Issues
+🧠 SHARED DATA MODEL (MANDATORY)
+
+All components must use the SAME data:
+
+type Transaction = {
+  id: string;
+  type: string;
+  stage: "DISPATCHER" | "SCENARIO" | "PAYLOAD" | "CONNECT";
+  status: "PROCESSING" | "SUCCESS" | "ERROR";
+  timestamp: number;
+  error?: string;
+};
+🔄 DATA FLOW (CRITICAL)
+
+Simulate or integrate real-time updates:
+
+Event Source → State Store → All Components Update
+⚙️ STATE MANAGEMENT
+
+Use a centralized state:
+
+transactions[]
+logs[]
+incidents[]
+metrics{}
+
+Each UI component must derive data from this shared state, not separate logic.
+
+🔁 SYNCHRONIZATION RULE
+
+When a transaction updates:
+
+Diagram updates metrics
+Event stream updates row
+Incident panel updates (if error)
+Logs panel appends entry
+
+👉 All at the same time
+
+⚡ BEHAVIOR
+Transactions move step-by-step across pipeline
+Random failures occur (~10%)
+Logs generated on each step
+Incident created on failure
+🎨 UI STYLE
+Clean fintech dashboard
+Light theme (#F8FAFC)
+Rounded cards
+Soft shadows
+Subtle animations
+🧱 COMPONENT STRUCTURE
+Header
+ArchitectureDiagram
+EventStream
+IncidentPanel
+LogPanel
+🚫 CONSTRAINTS
+Do NOT create separate logic per component
+Do NOT duplicate state
+Do NOT desync data
+
+👉 Everything must be driven by ONE source of truth
+
+🎯 OUTPUT EXPECTATION
+React-based UI
+Clean modular components
+Real-time simulation or WebSocket-ready
+Smooth transitions and animations
