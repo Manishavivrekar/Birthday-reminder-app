@@ -1,0 +1,505 @@
+use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { create } from 'zustand';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Activity, Zap, AlertTriangle, Layers, ShieldAlert } from 'lucide-react';
+
+/* ═══════════════════════════════════════════════════════════════════
+   TYPES
+   ═══════════════════════════════════════════════════════════════════ */
+
+type TS = 'DISPATCHER' | 'SCENARIO' | 'PAYLOAD' | 'CONNECT' | 'EVENT_STORE';
+type TStatus = 'PROCESSING' | 'SUCCESS' | 'ERROR';
+
+type Tx = {
+  id: string; type: string; stage: TS; status: TStatus;
+  timestamp: number; completedStages: TS[]; error?: string; failedStage?: TS;
+};
+
+type LogE = { id: string; timestamp: number; message: string; level: 'INFO' | 'WARN' | 'ERROR'; txId?: string; topic?: string };
+type Inc = { id: string; txId: string; txType: string; failedStage: TS; timestamp: number; errorMessage: string };
+type NM = { total: number; success: number; error: number; processing: number };
+type Metrics = { totalVolume: number; successCount: number; errorCount: number; processingCount: number; healthPercent: number; activeIssues: number; nodes: Record<TS, NM> };
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════════════════════════════════ */
+
+const STAGES: TS[] = ['DISPATCHER', 'SCENARIO', 'PAYLOAD', 'CONNECT', 'EVENT_STORE'];
+const KAFKA_TOPICS = ['T24.RAW', 'T24.PROCESSED', 'FX.TRADES', 'PAYMENT.IN', 'POSITION.UPD'];
+const TX_TYPES = ['FX_TRADE', 'PAYMENT', 'TRANSFER', 'POSITION_UPDATE', 'SETTLEMENT', 'RECONCILIATION'];
+const ERR_MSGS: Record<TS, string[]> = {
+  DISPATCHER: ['Routing timeout — no matching scenario', 'Queue overflow — message dropped', 'Schema validation failed'],
+  SCENARIO: ['Validation rule violation in scenario', 'Null pointer in condition eval', 'Registry timeout'],
+  PAYLOAD: ['Schema mismatch at field mapping', 'Required field missing from source', 'Unexpected data type in payload'],
+  CONNECT: ['Service unavailable — connection refused', 'Kafka broker not reachable', 'Connection pool exhausted'],
+  EVENT_STORE: ['Storage quota exceeded', 'Duplicate event detected', 'Latency threshold exceeded'],
+};
+const STAGE_LOGS: Record<TS, (id: string, t: string, tp?: string) => string> = {
+  DISPATCHER: (id, t) => `DISPATCHER >> [${id}] Routing to ${t} scenario pipeline`,
+  SCENARIO: (id, t) => `SCENARIO >> [${id}] Scenario ${t}_FLOW matched and executed`,
+  PAYLOAD: (id) => `PAYLOAD >> [${id}] Payload transformed (${Math.floor(Math.random() * 50 + 10)} fields)`,
+  CONNECT: (id, _t, tp) => `CONNECT >> [${id}] Connected to downstream via ${tp || 'default'}`,
+  EVENT_STORE: (id) => `EVENT_STORE >> [${id}] Persisted to event store ✓`,
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   ZUSTAND STORE (Single Source of Truth)
+   ═══════════════════════════════════════════════════════════════════ */
+
+const emptyNodes = (): Record<TS, NM> => ({
+  DISPATCHER: { total: 0, success: 0, error: 0, processing: 0 },
+  SCENARIO: { total: 0, success: 0, error: 0, processing: 0 },
+  PAYLOAD: { total: 0, success: 0, error: 0, processing: 0 },
+  CONNECT: { total: 0, success: 0, error: 0, processing: 0 },
+  EVENT_STORE: { total: 0, success: 0, error: 0, processing: 0 },
+});
+
+const emptyMetrics = (): Metrics => ({
+  totalVolume: 0, successCount: 0, errorCount: 0, processingCount: 0, healthPercent: 100, activeIssues: 0, nodes: emptyNodes(),
+});
+
+let _lc = 0, _ic = 0;
+
+const useStore = create<{ txs: Tx[]; logs: LogE[]; incs: Inc[]; m: Metrics; running: boolean;
+  addTx: (t: Tx) => void; updTx: (id: string, u: Partial<Tx>) => void;
+  addLog: (l: LogE) => void; addInc: (i: Inc) => void; recalc: () => void;
+  setRun: (r: boolean) => void; reset: () => void;
+}>>((set, get) => ({
+  txs: [], logs: [], incs: [], m: emptyMetrics(), running: false,
+  addTx: (t) => set((s) => ({ txs: [t, ...s.txs].slice(0, 50) })),
+  updTx: (id, u) => set((s) => ({ txs: s.txs.map((t) => t.id === id ? { ...t, ...u } : t) })),
+  addLog: (l) => { _lc++; set((s) => ({ logs: [...s.logs, { ...l, id: `l${_lc}` }].slice(-200) })); },
+  addInc: (i) => { _ic++; set((s) => ({ incs: [{ ...i, id: `i${_ic}` }, ...s.incs].slice(0, 30) })); },
+  setRun: (r) => set({ running: r }),
+  reset: () => { _lc = 0; _ic = 0; set({ txs: [], logs: [], incs: [], running: false, m: emptyMetrics() }); },
+  recalc: () => {
+    const { txs, incs } = get();
+    const succ = txs.filter((t) => t.status === 'SUCCESS').length;
+    const err = txs.filter((t) => t.status === 'ERROR').length;
+    const proc = txs.filter((t) => t.status === 'PROCESSING').length;
+    const done = succ + err;
+    const nodes = {} as Record<TS, NM>;
+    for (const st of STAGES) {
+      nodes[st] = {
+        total: txs.filter((t) => t.completedStages.includes(st) || (t.stage === st && t.status === 'PROCESSING') || t.failedStage === st).length,
+        success: txs.filter((t) => t.completedStages.includes(st) && t.status !== 'ERROR').length,
+        error: txs.filter((t) => t.failedStage === st).length,
+        processing: txs.filter((t) => t.stage === st && t.status === 'PROCESSING').length,
+      };
+    }
+    set({ m: { totalVolume: txs.length, successCount: succ, errorCount: err, processingCount: proc, healthPercent: done > 0 ? Math.round((succ / done) * 100) : 100, activeIssues: incs.filter((i) => Date.now() - i.timestamp < 60000).length, nodes } });
+  },
+}));
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIMULATION ENGINE
+   ═══════════════════════════════════════════════════════════════════ */
+
+let _txC = 0, _timers: ReturnType<typeof setTimeout>[] = [], _genInt: ReturnType<typeof setInterval> | null = null;
+const rand = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+const txId = () => { _txC++; return `GBM-${String(_txC).padStart(5, '0')};`;
+
+function advance(id: string, si: number, tt: string, tp: string, done: TS[]) {
+  const S = useStore.getState(), tx = S.txs.find((t) => t.id === id);
+  if (!tx || tx.status === 'ERROR') return;
+  const st = STAGES[si], nd = [...done, st];
+  S.updTx(id, { stage: st, completedStages: nd });
+  S.addLog({ id: '', timestamp: Date.now(), message: STAGE_LOGS[st](id, tt, tp), level: 'INFO', txId: id, topic: st === 'CONNECT' ? tp : undefined });
+  if (st === 'CONNECT') S.addLog({ id: '', timestamp: Date.now(), message: `KAFKA >> [${id}] Published to ${tp} (partition ${rand(0, 7)})`, level: 'INFO', txId: id, topic: tp });
+  S.recalc();
+  const timer = setTimeout(() => {
+    const c = useStore.getState(), ct = c.txs.find((t) => t.id === id);
+    if (!ct || ct.status === 'ERROR') return;
+    if (Math.random() < (st === 'EVENT_STORE' ? 0.02 : 0.10)) {
+      const msg = pick(ERR_MSGS[st]);
+      S.updTx(id, { status: 'ERROR', stage: st, error: msg, failedStage: st });
+      S.addLog({ id: '', timestamp: Date.now(), message: `${st} >> [${id}] ERROR: ${msg}`, level: 'ERROR', txId: id, topic: st === 'CONNECT' ? tp : undefined });
+      S.addInc({ id: '', txId: id, txType: tt, failedStage: st, timestamp: Date.now(), errorMessage: `Failed at ${st}: ${msg}` });
+      S.recalc(); return;
+    }
+    if (si < STAGES.length - 1) advance(id, si + 1, tt, tp, nd);
+    else { S.updTx(id, { status: 'SUCCESS', stage: 'EVENT_STORE', completedStages: [...STAGES] }); S.addLog({ id: '', timestamp: Date.now(), message: `EVENT_STORE >> [${id}] Completed successfully ✓`, level: 'INFO', txId: id }); S.recalc(); }
+  }, rand(600, 1500));
+  _timers.push(timer);
+}
+
+function spawn() {
+  const S = useStore.getState(), id = txId(), tt = pick(TX_TYPES), tp = pick(KAFKA_TOPICS);
+  S.addTx({ id, type: tt, stage: 'DISPATCHER' as TS, status: 'PROCESSING' as const, timestamp: Date.now(), completedStages: [] });
+  S.addLog({ id: '', timestamp: Date.now(), message: `INGEST >> [${id}] Topic: ${tp} | Type: ${tt}`, level: 'INFO', txId: id, topic: tp });
+  S.recalc();
+  advance(id, 0, tt, tp, []);
+}
+
+export function startSim() { const S = useStore.getState(); if (S.running) return; S.setRun(true); for (let i = 0; i < 3; i++) { const t = setTimeout(spawn, i * 300); _timers.push(t); } _genInt = setInterval(() => { const t = setTimeout(spawn, rand(1500, 3000)); _timers.push(t); }, 1200); }
+export function stopSim() { useDashboardStore.getState().setRun(false); if (_genInt) { clearInterval(_genInt); _genInt = null; } _timers.forEach(clearTimeout); _timers = []; }
+export function resetSim() { stopSim(); _txC = 0; useDashboardStore.getState().reset(); }
+// Alias for component usage
+const useDashboardStore = useStore;
+
+/* ═══════════════════════════════════════════════════════════════════
+   METRIC CARD
+   ═══════════════════════════════════════════════════════════════════ */
+
+function MetricCard({ label, value, Icon, accent, trend }: { label: string; value: string | number; Icon: React.ComponentType<{ className?: string }>; accent: string; trend?: string }) {
+  const a: Record<string, { bg: string; ic: string; vc: string }> = {
+    emerald: { bg: 'bg-emerald-500/10', ic: 'text-emerald-400', vc: 'text-emerald-400' },
+    rose: { bg: 'bg-rose-500/10', ic: 'text-rose-400', vc: 'text-rose-400' },
+    cyan: { bg: 'bg-cyan-500/10', ic: 'text-cyan-400', vc: 'text-cyan-400' },
+    amber: { bg: 'bg-amber-500/10', ic: 'text-amber-400', vc: 'text-amber-400' },
+    white: { bg: 'bg-white/5', ic: 'text-white/70', vc: 'text-white' },
+  };
+  const s = a[accent] || a.white;
+  return (
+    <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 min-w-[160px] transition-colors hover:bg-white/[0.05]">
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}><Icon className={`w-4 h-4 ${s.ic}`} /></div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-white/40 mb-0.5">{label}</p>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-xl font-bold tabular-nums ${s.vc}`}>{value}</span>
+            {trend && <span className={`text-[10px] font-medium tabular-nums ${trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-white/30'}`}>{trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════════════════════════════════ */
+
+function TopBar() {
+  const m = useDashboardStore((s) => s.m), run = useDashboardStore((s) => s.running);
+  return (
+    <header className="sticky top-0 z-50 bg-[#0B0F19]/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+      <div className="max-w-[1600px] mx-auto px-5 py-3">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <span className="text-white text-[11px] font-black tracking-tight">GBM</span>
+            </div>
+            <div>
+              <h1 className="text-[13px] font-bold text-white tracking-tight">Pipeline Monitor</h1>
+              <p className="text-[10px] text-white/30 font-medium">Real-time event processing</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-1 overflow-x-auto">
+            <MetricCard label="Total Volume" value={m.totalVolume} Icon={Layers} accent="cyan" />
+            <MetricCard label="Health" value={`${m.healthPercent}%`} Icon={Activity} accent="emerald" trend={m.healthPercent >= 90 ? 'up' : m.healthPercent >= 70 ? 'neutral' : 'down'} />
+            <MetricCard label="Issues" value={m.activeIssues} Icon={AlertTriangle} accent={m.activeIssues > 3 ? 'rose' : m.activeIssues > 0 ? 'amber' : 'emerald'} />
+            <MetricCard label="Processing" value={m.processingCount} Icon={Zap} accent="cyan" />
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => run ? stopSim() : startSim()} className={`relative px-5 py-2 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer ${run ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 hover:text-white/70'}`}>
+              {run && <span className="absolute inset-0 rounded-full bg-emerald-500/10 animate-pulse" />}
+              <span className="relative flex items-center gap-2"><span className={`w-1.5 h-1.5 rounded-full ${run ? 'bg-emerald-400' : 'bg-white/30'}`} />{run ? 'Running' : 'Start'}</span>
+            </button>
+            <button onClick={resetSim} className="px-3 py-2 rounded-full text-[11px] font-medium text-white/30 border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] hover:text-white/50 transition-all duration-200 cursor-pointer">Reset</button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PIPELINE VIEW
+   ═══════════════════════════════════════════════════════════════════ */
+
+const S_ICONS: Record<TS, string> = { DISPATCHER: '⇢', SCENARIO: '◈', PAYLOAD: '⚙', CONNECT: '⚡', EVENT_STORE: '▣' };
+const S_LABELS: Record<TS, string> = { DISPATCHER: 'Dispatcher', SCENARIO: 'Scenario Engine', PAYLOAD: 'Payload Builder', CONNECT: 'Connector', EVENT_STORE: 'Event Store' };
+
+function StageNode({ stage }: { stage: TS }) {
+  const n = useDashboardStore((s) => s.m.nodes[stage]), active = n.processing > 0, tot = n.success + n.error + n.processing;
+  return (
+    <div className="relative group">
+      {active && <div className="absolute -inset-1 rounded-2xl border border-cyan-500/30 animate-pulse-ring" />}
+      <div className={`relative bg-white/[0.03] border rounded-2xl p-4 min-w-[150px] transition-all duration-300 ${active ? 'border-cyan-500/30 glow-cyan' : 'border-white/[0.06] hover:border-white/[0.12]'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm">{S_ICONS[stage]}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/50">{S_LABELS[stage]}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {n.success > 0 && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-medium tabular-nums"><span className="w-1 h-1 rounded-full bg-emerald-400" />{n.success}</span>}
+          {n.error > 0 && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 text-[10px] font-medium tabular-nums"><span className="w-1 h-1 rounded-full bg-rose-400" />{n.error}</span>}
+          {n.processing > 0 && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[10px] font-medium tabular-nums"><span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" />{n.processing}</span>}
+          {tot === 0 && <span className="text-[10px] text-white/20 font-medium">Idle</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Connector() {
+  return (
+    <div className="flex items-center justify-center w-10 shrink-0">
+      <div className="relative flex items-center justify-center w-10 h-[2px]">
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+          <line x1="0" y1="1" x2="40" y2="1" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4 4" className="animate-flow-dash" />
+        </svg>
+        <motion.div className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400/80" animate={{ x: [0, 30] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} />
+      </div>
+    </div>
+  );
+}
+
+function PipelineView() {
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">Pipeline Architecture</span>
+        <div className="flex-1 h-px bg-white/[0.04]" />
+      </div>
+      <div className="flex items-center justify-center gap-0 overflow-x-auto pb-2">
+        {STAGES.map((st, i) => (
+          <div key={st} className="flex items-center">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.3 }}><StageNode stage={st} /></motion.div>
+            {i < STAGES.length - 1 && <Connector />}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center py-3">
+        <div className="relative flex flex-col items-center">
+          <svg width="2" height="32" className="overflow-visible"><line x1="1" y1="0" x2="1" y2="32" stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3" className="animate-flow-dash" /></svg>
+          <motion.div className="absolute w-1.5 h-1.5 rounded-full bg-purple-400/60" animate={{ y: [0, 28] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} />
+        </div>
+      </div>
+      <motion.div className="flex items-center justify-center gap-2 flex-wrap mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+        {KAFKA_TOPICS.map((topic) => (
+          <span key={topic} className="px-3 py-1 rounded-lg bg-purple-500/[0.07] border border-purple-500/10 text-[10px] font-mono font-medium text-purple-300/70 tracking-wide hover:bg-purple-500/[0.12] transition-colors duration-200">{topic}</span>
+        ))}
+      </motion.div>
+      <div className="flex justify-center py-2">
+        <div className="relative flex flex-col items-center">
+          <svg width="2" height="20" className="overflow-visible"><line x1="1" y1="0" x2="1" y2="20" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3 3" className="animate-flow-dash" /></svg>
+        </div>
+      </div>
+      <motion.div className="flex justify-center" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+        <div className="relative bg-white/[0.03] border border-white/[0.08] rounded-full px-6 py-2.5 glow-emerald">
+          <div className="absolute inset-0 rounded-full border border-emerald-500/10 animate-pulse" />
+          <div className="flex items-center gap-3">
+            <span className="text-emerald-400/60 text-sm">▣</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">Event Store</span>
+            <span className="text-[10px] text-emerald-400/50 font-mono">Append-only</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INCIDENT VIEW
+   ═══════════════════════════════════════════════════════════════════ */
+
+const STAGE_COLORS: Record<TS, string> = {
+  DISPATCHER: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
+  SCENARIO: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
+  PAYLOAD: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+  CONNECT: 'bg-red-500/15 text-red-400 border-red-500/20',
+  EVENT_STORE: 'bg-pink-500/15 text-pink-400 border-pink-500/20',
+};
+const TX_COLORS: Record<string, string> = { FX_TRADE: 'text-cyan-400', PAYMENT: 'text-emerald-400', TRANSFER: 'text-violet-400', POSITION_UPDATE: 'text-amber-400', SETTLEMENT: 'text-blue-400', RECONCILIATION: 'text-pink-400' };
+
+function timeAgo(ts: number) {
+  const d = Date.now() - ts;
+  if (d < 1000) return 'just now';
+  if (d < 60000) return `${Math.floor(d / 1000)}s ago`;
+  if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;
+  return `${Math.floor(d / 3600000)}h ago`;
+}
+
+function IncidentCard({ inc }: { inc: Inc }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.25, ease: 'easeOut' }} className="bg-white/[0.02] border border-rose-500/[0.12] rounded-xl p-4 border-l-2 border-l-rose-500/50 glow-rose hover:bg-white/[0.04] transition-colors duration-200">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[11px] font-mono font-bold text-white/70">{inc.txId}</span>
+        <span className={`text-[10px] font-medium ${TX_COLORS[inc.txType] || 'text-white/40'}`}>{inc.txType.replace('_', ' ')}</span>
+        <span className="text-[10px] text-white/20 ml-auto font-mono tabular-nums">{timeAgo(inc.timestamp)}</span>
+      </div>
+      <div className="mb-2"><span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${STAGE_COLORS[inc.failedStage]}`}>{inc.failedStage}</span></div>
+      <p className="text-[11px] text-white/30 leading-relaxed">{inc.errorMessage}</p>
+    </motion.div>
+  );
+}
+
+function IncidentView() {
+  const incs = useDashboardStore((s) => s.incs);
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-3 px-5 pt-4 pb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">Incidents</span>
+        {incs.length > 0 && <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-400 text-[10px] font-semibold tabular-nums">{incs.length}</span>}
+        <div className="flex-1 h-px bg-white/[0.04]" />
+      </div>
+      <div className="max-h-[300px] overflow-y-auto dark-scrollbar px-5 pb-4">
+        <AnimatePresence mode="popLayout">
+          {incs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{incs.map((inc) => <IncidentCard key={inc.id} inc={inc} />)}</div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-12">
+              <ShieldAlert className="w-8 h-8 text-white/10 mb-3" />
+              <span className="text-[12px] text-white/20 font-medium">No incidents</span>
+              <span className="text-[10px] text-white/10 mt-1">All transactions processing normally</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EVENT STREAM
+   ═══════════════════════════════════════════════════════════════════ */
+
+const TYPE_BADGE: Record<string, string> = {
+  FX_TRADE: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+  PAYMENT: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  TRANSFER: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  POSITION_UPDATE: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  SETTLEMENT: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  RECONCILIATION: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+};
+
+function EventStream() {
+  const txs = useDashboardStore((s) => s.txs);
+  const sorted = [...txs].sort((a, b) => ({ PROCESSING: 0, ERROR: 1, SUCCESS: 2 } as Record<TStatus, number>)[a.status] - ({ PROCESSING: 0, ERROR: 1, SUCCESS: 2 } as Record<TStatus, number>)[b.status]);
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-3 px-5 pt-4 pb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">Transaction Stream</span>
+        <span className="text-[10px] font-mono text-white/20 tabular-nums">{txs.length} records</span>
+        <div className="flex-1 h-px bg-white/[0.04]" />
+      </div>
+      <div className="flex items-center gap-4 px-5 py-2 border-b border-white/[0.04]">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/20 w-[100px]">TX ID</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/20 w-[100px]">Type</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/20 w-[80px]">Pipeline</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/20 w-[60px]">Status</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/20 ml-auto">Time</span>
+      </div>
+      <div className="max-h-[280px] overflow-y-auto dark-scrollbar">
+        <AnimatePresence mode="popLayout">
+          {sorted.map((tx) => (
+            <motion.div key={tx.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2, ease: 'easeOut' }} className={`flex items-center gap-4 px-5 py-2.5 transition-colors duration-150 border-l-2 ${tx.status === 'PROCESSING' ? 'border-l-cyan-500/60 bg-cyan-500/[0.02]' : tx.status === 'ERROR' ? 'border-l-rose-500/60 bg-rose-500/[0.02]' : 'border-l-transparent hover:bg-white/[0.015]'}`}>
+              <span className="text-[11px] font-mono font-medium text-white/60 w-[100px] truncate">{tx.id}</span>
+              <div className="w-[100px]"><span className={`px-2 py-0.5 rounded-md text-[10px] font-medium border ${TYPE_BADGE[tx.type] || 'bg-white/5 text-white/50 border-white/10'}`}>{tx.type.replace('_', ' ')}</span></div>
+              <div className="w-[80px]"><div className="flex items-center gap-[3px]">{STAGES.map((st) => <div key={st} className={`w-[6px] h-[6px] rounded-full transition-all duration-300 ${tx.completedStages.includes(st) ? 'bg-emerald-500' : tx.failedStage === st ? 'bg-rose-500' : tx.stage === st && tx.status === 'PROCESSING' ? 'bg-cyan-400 animate-pulse' : 'bg-white/10'}`} />)}</div></div>
+              <div className="w-[60px]">
+                {tx.status === 'SUCCESS' && <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold uppercase tracking-wider">Done</span>}
+                {tx.status === 'ERROR' && <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 text-[10px] font-semibold uppercase tracking-wider">Failed</span>}
+                {tx.status === 'PROCESSING' && <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" />Active</span>}
+              </div>
+              <span className="text-[10px] font-mono text-white/25 ml-auto tabular-nums">{timeAgo(tx.timestamp)}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {sorted.length === 0 && <div className="px-5 py-10 text-center"><span className="text-[11px] text-white/20">No transactions yet</span></div>}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   KAFKA LOG PANEL
+   ═══════════════════════════════════════════════════════════════════ */
+
+const LOG_CLR: Record<string, string> = {
+  ERROR: 'text-red-400', WARN: 'text-yellow-400', KAFKA: 'text-purple-400',
+  INGEST: 'text-emerald-400', DISPATCHER: 'text-cyan-400', SCENARIO: 'text-sky-400',
+  PAYLOAD: 'text-amber-400', CONNECT: 'text-violet-400', EVENT_STORE: 'text-teal-400',
+};
+
+function LogLine({ msg, ts }: { msg: string; ts: number }) {
+  const parts = msg.split(' >> '), prefix = parts[0]?.trim() || '', rest = parts.length > 1 ? parts.slice(1).join(' >> ') : msg;
+  return (
+    <div className="flex gap-2 leading-5 text-[11px] font-mono">
+      <span className="text-white/15 shrink-0 tabular-nums">{new Date(ts).toTimeString().split(' ')[0]}.{String(new Date(ts).getMilliseconds()).padStart(3, '0')}</span>
+      <span className={`shrink-0 font-semibold w-[80px] ${LOG_CLR[prefix] || 'text-white/30'}`}>{prefix}</span>
+      <span className="text-white/35 break-all">{rest}</span>
+    </div>
+  );
+}
+
+function KafkaLogPanel() {
+  const logs = useDashboardStore((s) => s.logs), ref = useRef<HTMLDivElement>(null), run = useDashboardStore((s) => s.running);
+  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [logs]);
+  return (
+    <div className="bg-[#060A13] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-white/[0.04] bg-white/[0.01]">
+        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500/40" /><div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" /><div className="w-2.5 h-2.5 rounded-full bg-green-500/40" /></div>
+        <span className="text-[10px] font-mono text-white/20">$ gbm-pipeline —logs --follow</span>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {run ? <><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-emerald-400/60">Live</span></> : <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/15">Paused</span>}
+          <span className="text-[10px] font-mono text-white/10 tabular-nums">{logs.length}</span>
+        </div>
+      </div>
+      <div ref={ref} className="max-h-[200px] overflow-y-auto terminal-scrollbar px-5 py-2">
+        {logs.map((log) => <LogLine key={log.id} msg={log.message} ts={log.timestamp} />)}
+        {logs.length > 0 && <div className="flex items-center gap-1 mt-0.5"><span className="text-emerald-400/40 text-[11px] font-mono">▸</span><span className="w-[6px] h-[14px] bg-emerald-400/50 animate-blink" /></div>}
+        {logs.length === 0 && <div className="py-6 text-center"><span className="text-[11px] text-white/10 font-mono">Waiting for events...</span></div>}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIEW SWITCHER
+   ═══════════════════════════════════════════════════════════════════ */
+
+type Tab = 'pipeline' | 'incidents';
+
+function ViewSwitcher({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+  const tabs: { id: Tab; label: string }[] = [{ id: 'pipeline', label: 'Pipeline' }, { id: 'incidents', label: 'Incidents' }];
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-1 flex items-center gap-0.5">
+      {tabs.map((tab) => (
+        <button key={tab.id} onClick={() => onChange(tab.id)} className={`relative px-5 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-200 cursor-pointer z-10 ${active === tab.id ? 'text-white' : 'text-white/30 hover:text-white/50'}`}>
+          {active === tab.id && <motion.div layoutId="tab-indicator" className="absolute inset-0 bg-white/[0.06] border border-white/[0.08] rounded-lg" transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }} />}
+          <span className="relative z-10">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD (Main Layout + Page Export)
+   ═══════════════════════════════════════════════════════════════════ */
+
+function Dashboard() {
+  const [tab, setTab] = useState<Tab>('pipeline');
+  return (
+    <div className="min-h-screen bg-[#0B0F19]">
+      <TopBar />
+      <main className="max-w-[1600px] mx-auto px-5 py-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <ViewSwitcher active={tab} onChange={setTab} />
+          <span className="text-[10px] font-mono text-white/15">GBM Platform v2.4.1</span>
+        </div>
+        <div className="relative">
+          {tab === 'pipeline' && <motion.div key="pipeline" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}><PipelineView /></motion.div>}
+          {tab === 'incidents' && <motion.div key="incidents" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}><IncidentView /></motion.div>}
+        </div>
+        <EventStream />
+        <KafkaLogPanel />
+      </main>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE (Entry Point with Auto-Start)
+   ═══════════════════════════════════════════════════════════════════ */
+
+export default function Home() {
+  useEffect(() => { startSim(); return () => { stopSim(); }; }, []);
+  return <Dashboard />;
+}
