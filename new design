@@ -1,1 +1,49 @@
-ne
+Prompt:
+
+Act as an expert React developer and UI/UX designer. Create a single-file React application for a highly technical Real-time Transaction Dashboard (GBM Gateway). Use Tailwind CSS for styling and lucide-react for icons.
+
+The dashboard should have a modern, clean, light-theme aesthetic (using slate, white, and subtle colored accents for status) and include the following features:
+
+1. Layout & Header:
+
+A top header displaying the system status, shift start time, and high-level live metrics (Total Volume, Health Percentage, Active Issues).
+
+Include toggle buttons in the header to switch the main view between "GC Architecture" and "Event Stream".
+
+Include toggle buttons to show/hide a bottom "Log" panel and a right "Incident" sidebar.
+
+2. Main View - Architecture Diagram:
+
+Create a visual system architecture diagram that auto-scales to fit the screen.
+
+The flow should consist of: A "Gold Copy Data Store" feeding into 4 sequential processing stages (Dispatcher, Scenario, Payload, Connect).
+
+Below the stages, show linked Kafka Topics (T24, T24-Scenario, T24-Payload).
+
+The flow should end at a large "Event Store" node.
+
+Crucial: Use animated SVG paths (with moving dots/circles) to represent data continuously flowing between these components.
+
+Each processing stage node should display live "OK" and "ERR" counters.
+
+3. Main View - Event Stream:
+
+A list view showing individual active transactions.
+
+Each transaction card should display its ID, type (e.g., FX_TRADE), and a visual progress bar indicating its current step through the 4 processing stages.
+
+4. Collapsible Panels:
+
+Bottom Panel (Terminal): A dark-themed, mono-spaced terminal window that auto-scrolls, showing simulated real-time Kafka ingest logs.
+
+Right Sidebar (Incidents): A red-themed list showing details of any transactions that failed, acting as a real-time LIFO audit trail.
+
+5. Simulation Engine:
+
+Write a useEffect simulation loop that generates a new random financial transaction every ~2-3 seconds.
+
+Progress these transactions step-by-step through the 4 stages.
+
+Introduce a 10% random failure rate. When a transaction fails, it should halt progress, increment the "ERR" metric for that specific stage, push an error entry to the Incident sidebar, and turn red in the Event Stream view.
+
+Ensure successful transactions increment the "OK" metrics and eventually disappear from the active stream after a few seconds.
