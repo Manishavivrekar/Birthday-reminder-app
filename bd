@@ -1,0 +1,420 @@
+Create a highly professional, executive-level PowerPoint presentation for senior management / project leadership.
+
+Project:
+Dashboard Consumer Engine – Hybrid DB + Live Event Overlay
+
+Purpose:
+Explain the current dashboard architecture, the problem with data freshness, the proposed hybrid consumer-engine solution, how the data flows, and the expected benefits.
+
+Audience:
+Project Manager, Engineering Manager, Solution Architect and senior technical/business leadership.
+
+The presentation must be easy to understand even for someone who does not know the codebase.
+
+IMPORTANT:
+Do NOT invent architecture components, metrics, performance numbers, ROI or technical behavior that are not provided below.
+Use only the information supplied in this prompt.
+Where a metric is required but unavailable, show [TBD] instead.
+
+==================================================
+SLIDE 1 — EXECUTIVE TITLE
+==================================================
+
+Title:
+"Dashboard Consumer Engine – Hybrid Real-Time Visibility"
+
+Subtitle:
+"Improving dashboard freshness while reducing repeated database reads"
+
+Include:
+- Project / team name
+- Presenter
+- Date
+
+Visual:
+A premium conceptual illustration showing:
+Database → Event Stream → Consumer Engine → Dashboard
+
+Keep this slide minimal and executive.
+
+==================================================
+SLIDE 2 — WHY ARE WE CHANGING?
+==================================================
+
+Title:
+"Current Challenge: Dashboard Freshness Depends on DB Refresh"
+
+Explain the current situation in simple business language.
+
+Current source model:
+- Dashboard metrics come from DB aggregation only.
+- Data is derived through Transaction_Inbound / Transaction_Outbound.
+- DashboardDao + dashboard.xml are used.
+
+Current request flow:
+UI → GET /dashboard → DashboardService → DB/Cache → UI
+
+Current limitation:
+- No dedicated live event consumer path.
+- Dashboard freshness depends on DB/cache refresh timing.
+- Near-real-time stage movement is not immediately visible.
+- Normal polling can result in repeated DB reads.
+
+Visual:
+Create a clean "CURRENT STATE" architecture diagram.
+
+Use clear arrows and labels.
+Highlight the point where freshness is delayed.
+
+==================================================
+SLIDE 3 — PROPOSED SOLUTION
+==================================================
+
+Title:
+"Target State: Hybrid DB Baseline + Live Event Overlay"
+
+Show the proposed architecture:
+
+                    ┌────────────────────┐
+                    │     Database       │
+                    │  Baseline Metrics  │
+                    └─────────┬──────────┘
+                              │
+                              ▼
+                    ┌────────────────────┐
+                    │  Dashboard Service │
+                    └─────────┬──────────┘
+                              │
+                              ▼
+                         Dashboard UI
+
+MQ / EventStore
+      │
+      ▼
+┌─────────────────────────────┐
+│ DashboardConsumerService    │
+│           Engine            │
+└─────────────┬───────────────┘
+              │
+              ▼
+       In-Memory Live Overlay
+              │
+              └──────────────► Dashboard Service
+
+Core concept:
+"DB provides the reliable baseline; live events provide the freshness."
+
+Clearly distinguish:
+BASELINE = DB
+LIVE OVERLAY = MQ/EventStore-aligned events
+
+Do NOT make the diagram overly technical.
+
+==================================================
+SLIDE 4 — HOW THE DASHBOARD BEHAVES
+==================================================
+
+Title:
+"Two-Stage Data Strategy: Initial Load + Steady State"
+
+Create an interactive-looking two-column flow.
+
+LEFT:
+FIRST DB LOAD
+
+isFirstDbLoadDone = false
+
+1. Load DB once
+2. Calculate dashboard fields
+3. Store memory snapshot
+4. Set isFirstDbLoadDone = true
+
+RIGHT:
+STEADY STATE
+
+isFirstDbLoadDone = true
+
+1. Read memory snapshot
+2. Merge latest overlay counters
+3. Return updated dashboard values
+4. Avoid repeated DB loads during normal polling
+
+Visual:
+Show the transition:
+
+FIRST REQUEST
+DB → Calculate → Memory Snapshot
+                         ↓
+                  isFirstDbLoadDone=true
+                         ↓
+SUBSEQUENT REQUESTS
+Memory Snapshot + Live Overlay → Dashboard
+
+Make this one of the strongest diagrams in the presentation.
+
+==================================================
+SLIDE 5 — LIVE EVENT FLOW
+==================================================
+
+Title:
+"Near Real-Time Update Path"
+
+Show this sequence clearly:
+
+MQ / EventStore
+       ↓
+DashboardConsumerServiceEngine
+       ↓
+Consume event
+       ↓
+Parse:
+messageId
+stage
+status
+eventTime
+       ↓
+Recalculate counters
+       ↓
+Update in-memory state
+       ↓
+DashboardService
+       ↓
+UI polling every 5 seconds
+       ↓
+Updated dashboard values
+
+Important clarification:
+"The consumer does NOT push directly to the UI."
+
+Instead:
+Consumer updates memory → UI receives the latest values on the next API call.
+
+Use animated-style arrows and numbered stages.
+
+==================================================
+SLIDE 6 — CURRENT VS TARGET
+==================================================
+
+Title:
+"Architecture Evolution: From DB-Driven to Hybrid"
+
+Create a professional side-by-side comparison.
+
+CURRENT:
+
+UI
+ ↓
+GET /dashboard
+ ↓
+DashboardService
+ ↓
+DB / Cache
+ ↓
+Dashboard
+
+Issues:
+- Freshness depends on DB/cache refresh
+- No dedicated live event path
+- Repeated DB reads during polling
+
+TARGET:
+
+DB Baseline
+     +
+MQ/EventStore Events
+     ↓
+DashboardConsumerServiceEngine
+     ↓
+In-Memory Live Overlay
+     ↓
+DashboardService
+     ↓
+UI
+
+Benefits:
+- Reliable DB baseline
+- Near-real-time visibility
+- Lower DB read pressure
+- No direct consumer-to-UI dependency
+
+Use a visual "BEFORE → AFTER" transformation.
+
+==================================================
+SLIDE 7 — EXPECTED VALUE
+==================================================
+
+Title:
+"Expected Outcome"
+
+Focus on business/engineering value rather than code.
+
+Show four major outcomes:
+
+1. FRESHNESS
+Near-real-time stage movement becomes visible.
+
+2. DB EFFICIENCY
+Avoid repeated DB loads during normal polling.
+
+3. RELIABILITY
+Retain DB as the correctness/reliability baseline.
+
+4. SCALABILITY
+Separate event consumption from UI request processing.
+
+Main message:
+"Maintain DB correctness while adding near-real-time visibility and reducing read pressure on the database."
+
+Do NOT invent percentages.
+
+If numerical metrics are unavailable, use qualitative impact indicators.
+
+==================================================
+SLIDE 8 — IMPLEMENTATION & NEXT STEPS
+==================================================
+
+Title:
+"Implementation Path & Next Enhancements"
+
+Show the current implementation concept:
+
+Phase 1
+DB baseline
+      ↓
+Phase 2
+In-memory snapshot
+      ↓
+Phase 3
+MQ event consumer
+      ↓
+Phase 4
+Live overlay
+      ↓
+Phase 5
+UI consumes updated values
+
+Then show future enhancements:
+
+- Replay / reprocess-safe per-message recalculation
+- Consumer health fallback
+- Stronger observability
+- Lag monitoring
+
+Clearly label these as:
+"Future Enhancements"
+
+==================================================
+SLIDE 9 — MANAGEMENT TAKEAWAY
+==================================================
+
+Title:
+"Key Takeaway"
+
+Use one large executive statement:
+
+"Use the database for trusted baseline correctness and the event consumer for live operational visibility."
+
+Underneath show three simple points:
+
+✓ Reliable baseline
+✓ Near-real-time visibility
+✓ Reduced DB read pressure
+
+End with:
+
+"Next Step: Validate the hybrid approach through functional and performance testing."
+
+==================================================
+DESIGN REQUIREMENTS
+==================================================
+
+Create a premium enterprise technology presentation.
+
+Style:
+- Executive / consulting-style
+- Modern enterprise architecture
+- Clean and minimal
+- Professional technology aesthetic
+- Light background
+- Dark navy / blue primary accents
+- Subtle gradients
+- White cards
+- Thin connectors
+- Rounded corners
+- Consistent typography
+- Plenty of whitespace
+
+Avoid:
+- Dense paragraphs
+- Huge blocks of code
+- Clip-art
+- Cartoon graphics
+- Excessive animations
+- Too many colors
+- Unnecessary technical details
+
+Use:
+- Architecture diagrams
+- Flow diagrams
+- Before/After comparison
+- Numbered process flows
+- Icons
+- Minimal text
+- Highlighted keywords
+
+==================================================
+INTERACTIVITY
+==================================================
+
+Make the PowerPoint feel interactive and presentation-ready.
+
+Add a small navigation bar on each slide:
+
+01 Overview | 02 Problem | 03 Solution | 04 Data Strategy |
+05 Event Flow | 06 Comparison | 07 Value | 08 Roadmap
+
+Make navigation items clickable where PowerPoint supports hyperlinks.
+
+Add:
+- Home button
+- Back button
+- Next button
+
+Use subtle slide transitions.
+
+For architecture diagrams:
+- Use progressive animation / appear effects where appropriate.
+- First show DB baseline.
+- Then reveal MQ/EventStore.
+- Then reveal Consumer Engine.
+- Then reveal In-Memory Overlay.
+- Finally reveal Dashboard UI.
+
+The animation should explain the architecture step-by-step rather than being decorative.
+
+==================================================
+PRESENTATION STYLE
+==================================================
+
+The presentation should tell this story:
+
+CURRENT PROBLEM
+      ↓
+WHY IT MATTERS
+      ↓
+TARGET ARCHITECTURE
+      ↓
+HOW IT WORKS
+      ↓
+LIVE EVENT FLOW
+      ↓
+BUSINESS / ENGINEERING VALUE
+      ↓
+NEXT STEPS
+
+A senior manager should understand the complete concept within 5 minutes.
+
+Every slide must have one clear message.
+
+Do not overwhelm the audience with implementation-level Java details.
+Keep class names such as DashboardConsumerServiceEngine only where they help explain the architecture.
