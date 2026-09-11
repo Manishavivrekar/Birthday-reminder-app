@@ -1,0 +1,352 @@
+Analyze the entire project/codebase and create a **deep, developer-level technical documentation in Markdown (.md)** based strictly on the actual source code, configuration files, database scripts, APIs, and UI implementation.
+
+### 1. Project Overview
+
+* Explain the business purpose and objective of the project.
+* Explain the end-to-end business flow.
+* Identify the major modules/features and what each module is responsible for.
+* Explain how the modules interact with each other.
+* Provide a high-level architecture diagram using Mermaid.
+
+### 2. Technology Stack
+
+Identify the actual technologies and versions used:
+
+* Frontend framework/library
+* Backend framework
+* Java/JDK version
+* Build tools
+* Database
+* Messaging systems such as Kafka/IBM MQ/ActiveMQ
+* REST APIs
+* Authentication/authorization
+* Cloud/infrastructure components
+* External systems
+* Important libraries/dependencies
+
+For every technology, explain **where and why it is used in this project**.
+
+### 3. Complete Frontend/UI Documentation
+
+Analyze every UI module, page, screen, component, popup, modal, form, table, chart, button and user interaction.
+
+For each UI module explain:
+
+* Purpose
+* Route/navigation
+* Parent and child components
+* Component hierarchy
+* Props
+* State management
+* API calls
+* User actions
+* Validations
+* Error handling
+* Loading states
+* Conditional rendering
+* Data transformation
+* Tables/filters/sorting/pagination
+* Modals/popups
+* Role-based behavior
+* Backend dependency
+
+Create a **UI → Component → API → Backend** flow diagram using Mermaid.
+
+### 4. Complete Backend Documentation
+
+Analyze the backend from controller/API level down to database level.
+
+For every module document:
+
+Controller
+→ Service
+→ Business Logic
+→ Repository/DAO
+→ Entity/Model
+→ Database
+
+For each class explain:
+
+* Responsibility
+* Important methods
+* Input parameters
+* Return values
+* Business rules
+* Dependencies
+* Exception handling
+* External service calls
+* Database interactions
+
+Do not only list class names. Explain **what the code actually does and why it exists**.
+
+### 5. API Documentation
+
+Identify every API endpoint from the source code.
+
+For each API provide:
+
+| Method | Endpoint | Purpose | Request | Response | Controller | Service | DB |
+| ------ | -------- | ------- | ------- | -------- | ---------- | ------- | -- |
+
+Also document:
+
+* Headers
+* Authentication
+* Request parameters
+* Request body
+* Response structure
+* HTTP status codes
+* Error responses
+* Validation
+* Downstream API calls
+
+Provide Mermaid sequence diagrams for important APIs.
+
+### 6. Database Documentation
+
+Analyze all SQL scripts, entities, repositories, queries, migrations and configuration.
+
+For every database table document:
+
+* Table name
+* Purpose
+* Columns
+* Data types
+* Primary key
+* Foreign keys
+* Indexes
+* Nullable/non-nullable fields
+* Default values
+* Relationships
+* Which Java entity maps to the table
+* Which repository accesses it
+* Which APIs/modules use it
+
+Create an **ER diagram using Mermaid** showing table relationships.
+
+### 7. Module-Level Deep Dive
+
+For EVERY major module, create a dedicated section:
+
+#### Module: <Module Name>
+
+**Purpose**
+Explain what this module does from a business perspective.
+
+**Responsibilities**
+Explain everything this module is responsible for.
+
+**Input**
+Where does the data come from?
+
+**Processing**
+Explain the complete processing logic step-by-step.
+
+**Output**
+What does the module produce?
+
+**Frontend Flow**
+UI → Component → API
+
+**Backend Flow**
+Controller → Service → Repository → DB
+
+**External Dependencies**
+Kafka/MQ/REST/external services/etc.
+
+**Database**
+Tables, queries and relationships involved.
+
+**Error Handling**
+What happens when something fails?
+
+**Example End-to-End Flow**
+Explain one realistic request from the user clicking a UI button until the final response/database operation.
+
+### 8. Messaging / Kafka / MQ Flow
+
+If messaging is used, document:
+
+* Producer
+* Consumer
+* Topic/Queue
+* Message structure
+* Serialization/deserialization
+* Consumer groups
+* Retry mechanism
+* Error handling
+* Dead-letter mechanism
+* Message processing flow
+
+Create a Mermaid message-flow diagram.
+
+### 9. Configuration
+
+Analyze:
+
+* application.yml
+* application.properties
+* environment-specific configurations
+* Maven/Gradle configuration
+* Docker/Kubernetes configuration
+* security configuration
+* logging configuration
+
+Explain what each important configuration does and how it affects application behavior.
+
+**Never expose passwords, tokens, certificates, secrets, private keys or credentials. Replace them with `<REDACTED>`.**
+
+### 10. Security
+
+Document:
+
+* Authentication
+* Authorization
+* Roles/permissions
+* JWT/OAuth/security filters if present
+* CORS
+* CSRF
+* API security
+* Sensitive data handling
+
+### 11. Error Handling & Logging
+
+Explain:
+
+* Global exception handling
+* Custom exceptions
+* HTTP error responses
+* Logging strategy
+* Important log messages
+* Retry/fallback behavior
+
+### 12. End-to-End Business Flows
+
+Identify the most important business scenarios and explain each one:
+
+User
+→ UI
+→ API
+→ Controller
+→ Service
+→ Database/External System
+→ Response
+→ UI
+
+Create Mermaid sequence/flow diagrams.
+
+### 13. Code Dependency Map
+
+Create a dependency map showing:
+
+UI Components
+↓
+API Layer
+↓
+Controller
+↓
+Service
+↓
+Repository
+↓
+Entity
+↓
+Database
+
+Also identify external dependencies such as Kafka, MQ, REST services and third-party systems.
+
+### 14. Important Business Rules
+
+Extract actual business rules from the code.
+
+For every rule explain:
+
+* Where it is implemented
+* Which module uses it
+* What condition triggers it
+* What happens when the condition is true/false
+
+### 15. Testing
+
+Analyze existing:
+
+* Unit tests
+* Integration tests
+* API tests
+* Mocking
+* Test data
+
+Document what is tested and identify important areas that appear to have insufficient test coverage.
+
+### 16. Project Structure
+
+Explain the complete folder/package structure and the responsibility of important folders.
+
+Example:
+
+frontend/
+├── components/
+├── pages/
+├── services/
+└── utils/
+
+backend/
+├── controller/
+├── service/
+├── repository/
+├── entity/
+└── config/
+
+### 17. Technical Risks / Observations
+
+Based only on the code, identify:
+
+* Tight coupling
+* Duplicate logic
+* Potential performance issues
+* Error-handling gaps
+* Security concerns
+* Technical debt
+* Hardcoded values
+* Database risks
+* Scalability concerns
+
+Clearly separate **confirmed findings from assumptions**.
+
+### 18. Documentation Quality Rules
+
+IMPORTANT:
+
+* Do not invent functionality that is not present in the code.
+* Do not assume what a class does based only on its name.
+* Trace the actual implementation.
+* Follow data from UI → API → backend → database/external system.
+* Explain the "WHY" and not only the "WHAT".
+* Cross-reference related modules/classes/APIs/tables.
+* Mention the exact file/class/method wherever useful.
+* If something cannot be determined from the code, explicitly write **"Not determinable from the available source."**
+* Keep terminology consistent throughout the documentation.
+* Use Mermaid diagrams wherever they improve understanding.
+* Use tables for structured information.
+* Include both **high-level architecture** and **deep implementation-level details**.
+
+### Final Deliverables
+
+Create:
+
+1. `README.md` — Executive/project overview
+2. `ARCHITECTURE.md` — Complete system architecture
+3. `FRONTEND.md` — Complete UI/component documentation
+4. `BACKEND.md` — Complete backend documentation
+5. `API.md` — Complete API documentation
+6. `DATABASE.md` — Tables, relationships and DB flows
+7. `MODULES.md` — Deep explanation of every major module
+8. `MESSAGING.md` — Kafka/MQ/message flows if applicable
+9. `CONFIGURATION.md` — Configuration documentation
+10. `SECURITY.md` — Security architecture
+11. `BUSINESS-FLOWS.md` — End-to-end business flows
+12. `PROJECT-STRUCTURE.md` — Code/package structure
+13. `TESTING.md` — Testing documentation
+14. `TECHNICAL-OBSERVATIONS.md` — Risks, technical debt and improvement areas
+
+Finally create an `INDEX.md` that links all documentation files together so a new developer can understand the project starting from high level and progressively go into implementation details.
