@@ -1,0 +1,181 @@
+CDS Control Tower — Enhance Existing Dashboard with Complete Functionality
+
+Act as a senior full-stack developer, React UI architect, and enterprise dashboard designer. I have already created a CDS Control Tower dashboard, but several interactions and details from my reference HTML are missing. Your task is to inspect the existing project, use my HTML as the reference, and enhance the current implementation into a fully functional dashboard.
+
+1. First Inspect the Existing Project
+
+- Review the existing frontend framework, folder structure, components, routing, styling approach, dependencies, and coding conventions.
+- Use the existing frontend stack and framework. Do not introduce a new frontend framework or replace the current architecture.
+- Inspect the existing CDS dashboard HTML file and any related CSS, JavaScript, icons, and assets.
+- Treat the HTML as the visual and functional reference for layout, interactions, content, and expected behavior.
+- Reuse existing components and services wherever possible. Do not rebuild the entire application unnecessarily.
+- Inspect the existing Spring Boot backend and Oracle integration before creating or changing APIs.
+
+2. Match and Complete the Dashboard UI
+
+Use my reference HTML and screenshots to implement the CDS Control Tower, including:
+
+- Header with title, description, data-mode indicator, global search, refresh, and theme selector.
+- Navigation tabs: Overview, Posting Requests, Customers, Accounts, and Dispositions.
+- KPI cards for Posting Requests, Customers, Accounts, and Dispositions.
+- Posting Flow section showing the available posting stages and their counts.
+- Posting Activity chart and Disposition Queue summary.
+- Posting Requests table with filtering, sorting, pagination, and row selection/details.
+- Customer, Account, and Disposition views.
+
+Keep the existing application's default design and color system. Add three additional themes that follow the same design language. The theme selector must switch the complete dashboard consistently, not just individual cards.
+
+3. Implement the Missing Click Interactions
+
+A. KPI Cards — Open Right-Side Detail Drawer
+
+Every KPI card must be clickable and open a right-side drawer containing detailed records for that KPI.
+
+- Posting Requests → show the related posting request records.
+- Customers → show customer records and relevant details.
+- Accounts → show account records and relevant details.
+- Dispositions → show disposition records and relevant details.
+
+The drawer should include:
+
+- A clear title and record count.
+- A close button and appropriate drawer header.
+- Search, filters, and sorting where relevant.
+- A properly formatted table with meaningful columns.
+- Row selection or a details view where appropriate.
+- Loading, empty, and error states.
+- A responsive layout that works on smaller screens.
+
+Clicking a KPI should open the correct drawer with the corresponding data. Do not make the cards decorative or show the same generic table for every KPI.
+
+B. Posting Flow — Make Each Stage Interactive
+
+Recreate the Posting Flow design from my reference HTML.
+
+- Display the posting stages as visually connected cards or steps, with counts, progress bars, and percentages where supported by the data.
+- Make each stage clickable.
+- Clicking a stage should open the right-side drawer showing posting requests belonging to that stage.
+- Apply the relevant status filter to the drawer's table.
+- Keep the selected stage visually highlighted.
+- Do not hardcode status values or assume business meanings. Inspect the existing code, database values, and backend logic to determine the supported statuses.
+
+C. Disposition Queue — Open Right-Side Drawer
+
+Make the Disposition Queue summary interactive.
+
+- Display disposition statuses and their counts as shown in the reference HTML.
+- Clicking a status row or count should open a right-side drawer.
+- The drawer must contain a Disposition table filtered by the selected status.
+- Include relevant fields such as Disposition ID, Inbound Message ID, Type, Status, Reason, and Created details, where available.
+- Allow users to search, sort, and inspect disposition records.
+- Ensure the displayed count matches the filtered records or clearly indicate when pagination affects the displayed rows.
+
+D. Posting Requests Table
+
+- Clicking a posting request row should open its detailed view, preferably in the right-side drawer.
+- Show available request, inbound message, fund transfer, debit account, credit account, amount, currency, status, disposition, description, and audit information.
+- Display only fields supported by the actual data.
+- Format monetary values and timestamps consistently.
+- Handle missing or null values gracefully.
+
+4. Use the Existing HTML as the Reference
+
+Before implementing, identify the reference HTML's:
+
+- Dashboard sections and layout.
+- Cards, tables, charts, status badges, and colors.
+- Clickable elements and their expected behavior.
+- Drawer or modal designs and their contents.
+- Search, filters, sorting, and pagination behavior.
+
+Translate the relevant HTML structure and behavior into the existing React application using its current framework and conventions. Do not simply embed the HTML as a static page or create a separate standalone frontend.
+
+If the HTML contains interactions that are not implemented yet, recreate them using proper React state and reusable components.
+
+5. Backend and Oracle Data Integration
+
+Use the existing Spring Boot backend and Oracle database wherever available.
+
+Relevant tables:
+
+- "CDS_POSTING_REQUEST"
+- "CDS_CUSTOMER"
+- "CDS_ACCOUNT"
+- "CDS_DISPO"
+
+Inspect the actual schema, entity mappings, repositories, services, controllers, and relationships before writing queries or APIs.
+
+Potential relationships to verify:
+
+- Posting request inbound message ID ↔ disposition inbound message ID.
+- Posting request debit and credit account IDs ↔ account ID.
+- Account customer ID ↔ customer ID.
+
+Do not assume foreign keys, one-to-one relationships, or status definitions without verification. Prevent duplicate posting-request counts when joining multiple dispositions.
+
+Reuse existing APIs if available. If new APIs are needed, implement them using the current Spring Boot architecture, DTOs, service layer, repository layer, and Oracle query conventions.
+
+Ensure:
+
+- KPI counts and drawer records use consistent filters.
+- Search and filters work with actual data.
+- Pagination and sorting are handled correctly.
+- Monetary values use "BigDecimal".
+- Sensitive payload fields, such as "HELD_PAYLOAD", are not exposed in dashboard tables or responses unless explicitly required and authorized.
+
+6. Demo Data and Real Data
+
+The dashboard currently has very limited real database data, so support both real and demo modes.
+
+- Keep demo data clearly labelled as DEMO DATA.
+- Demo mode should provide realistic, varied records so all cards, charts, tables, filters, and drawers can be demonstrated.
+- Real mode must use backend/database data only.
+- Never mix demo records with real database records.
+- Do not insert fake records into production tables.
+- Ensure the UI works when there are zero, one, or many real records.
+- Do not fabricate real activity trends or status distributions when the database does not contain enough data.
+
+7. Code Quality and Reusability
+
+Create or reuse reusable components such as:
+
+- "KpiCard"
+- "PostingFlow"
+- "DispositionQueue"
+- "RightSideDrawer"
+- "DataTable"
+- "PostingRequestDetails"
+- "CustomerDetails"
+- "AccountDetails"
+- "DispositionDetails"
+
+Follow the existing project's naming and component conventions. Avoid unnecessary dependencies, duplicated logic, hardcoded mock values in production paths, and large components that combine unrelated responsibilities.
+
+8. Testing and Acceptance Criteria
+
+Before completing the task, verify:
+
+1. All four KPI cards open the correct right-side drawer.
+2. Every Posting Flow stage opens a correctly filtered posting-request drawer.
+3. Clicking each Disposition Queue status opens a filtered disposition table.
+4. Posting request rows open the correct record details.
+5. Search, filters, sorting, pagination, and close controls work.
+6. The dashboard matches the reference HTML's intended layout and visual behavior.
+7. All four themes work across the entire dashboard and drawers.
+8. Demo mode and real-data mode remain separate.
+9. Empty, loading, and error states display correctly.
+10. Existing application pages and functionality are not broken.
+
+Expected Deliverables
+
+First provide a brief summary of the existing implementation and the gaps found by comparing it with the HTML reference. Then implement the missing functionality in the existing project.
+
+At the end, summarize:
+
+- Files created or modified.
+- Components and interactions implemented.
+- APIs reused or added.
+- Any assumptions or unresolved backend/data requirements.
+- Tests or validation performed.
+
+Important: Do not stop after creating a visual mockup or explaining what needs to be done. Implement the working functionality in the existing project, using the HTML reference and current application architecture.
