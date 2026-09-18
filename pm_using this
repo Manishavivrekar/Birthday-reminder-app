@@ -1,0 +1,269 @@
+# CDS Control Tower — Full-Stack Development Prompt
+
+## Role
+
+Act as a senior full-stack developer, solution architect, Oracle database engineer, and enterprise UI/UX designer. Enhance the existing CDS application by introducing a new **CDS Control Tower Dashboard** while preserving the current application architecture, framework, and functionality.
+
+## 1. Existing Project and Frontend Architecture
+
+This is an enhancement to an existing application, **not a new standalone frontend project**.
+
+Before making changes:
+
+1. Inspect the existing project structure, `pom.xml`, `package.json`, frontend source files, build scripts, and current UI framework.
+2. Identify the exact frontend framework, framework version, CSS approach, component library, icon library, charting libraries, and build tooling already in use.
+3. Reuse the existing frontend stack and compatible versions. Do not introduce a separate React project, separate `package.json`, or a new frontend build pipeline.
+4. Do not upgrade or replace the existing internal SSC-CDT4 framework unless explicitly required and approved.
+5. Build the CDS Dashboard as a new, modular dashboard/page within the existing frontend application, following the existing routing, component, styling, and coding conventions.
+6. Reuse existing backend services, Spring Boot configuration, Oracle database connectivity, authentication, and shared utilities wherever applicable.
+
+**Important:** Do not assume that the project uses the latest React, Tailwind, or any particular library. First inspect what is actually installed and supported by the existing framework.
+
+## 2. CDS Control Tower Dashboard
+
+Create a modern, professional, colorful, enterprise-grade CDS Control Tower dashboard that fits naturally into the existing application.
+
+The dashboard should provide operational and business visibility into CDS posting requests, customers, accounts, dispositions, and related activity supported by the database.
+
+### Dashboard areas
+
+Include the following sections where the available data and confirmed business rules support them:
+
+* Dashboard header with title, status/context indicators, search, and relevant navigation.
+* KPI cards for supported posting, customer, account, and disposition metrics.
+* Posting flow visualization showing the confirmed stages and counts.
+* Posting request explorer with search, filters, sorting, pagination, and details.
+* Customer overview and customer directory.
+* Account overview and account details.
+* Disposition queue and disposition summary.
+* System activity or event feed, only where real event data is available.
+* Relevant operational and business views, organized clearly and without overcrowding.
+
+Use the supplied dashboard screenshots as **visual inspiration** for layout, hierarchy, colorful cards, flow visualization, status indicators, customer views, and operational panels. Do not copy unsupported metrics or business behavior from the screenshots.
+
+## 3. Color System and Premium Multi-Theme Support
+
+Implement **four themes** across the CDS Dashboard.
+
+### Theme 1 — Existing Application Design (Default)
+
+* Preserve the current application’s existing colors, visual language, typography, and component styling.
+* This must be the default theme when users open the dashboard.
+* Do not replace the existing application’s design with a new default palette.
+
+### Theme 2 — Soft Modern Blue
+
+* A modern, calm, premium blue palette.
+* Use soft blue accents, refined neutrals, and clean card surfaces.
+* Keep the design professional and suitable for an enterprise fintech application.
+
+### Theme 3 — Warm Premium
+
+* A warm, sophisticated palette using muted coral, terracotta, amber, and warm neutrals.
+* Avoid overly bright or harsh colors.
+* Maintain clear visual hierarchy and readable status indicators.
+
+### Theme 4 — Soft Modern Green
+
+* A refined green palette using muted emerald, sage, teal, and soft neutral backgrounds.
+* Keep the overall appearance calm, modern, and premium.
+
+### Theme implementation requirements
+
+* Add a theme selector to the dashboard using the existing UI framework and component conventions.
+* Theme changes must apply consistently across all dashboard components, including cards, charts, tables, badges, dialogs, filters, and navigation elements.
+* Use reusable theme tokens or CSS variables if supported by the existing stack.
+* Preserve accessible text contrast and clear status colors across all themes.
+* Avoid hardcoding theme-specific colors separately in every component.
+* Persist the user’s selected dashboard theme if the existing application architecture permits it.
+* Keep the existing application theme as the default and provide a smooth, subtle transition when switching themes.
+* Do not change the global application appearance unexpectedly; scope dashboard-specific theme behavior appropriately.
+
+## 4. Oracle Database Schema
+
+Use the existing Oracle database configuration and verify the actual schema before implementation. The known tables are:
+
+### `CDS_POSTING_REQUEST`
+
+* `INBOUNDMESSAGE_ID`
+* `REQUEST_ID`
+* `CDS_FUNDTRANSFER_ID`
+* `DR_ACCOUNT_ID`
+* `CR_ACCOUNT_ID`
+* `AMOUNT`
+* `CURRENCY`
+* `STATUS`
+* `DESCRIPTION`
+* `RESPONSE_INBOUND_ID`
+* `PAUSE`
+* `HELD_PAYLOAD`
+* `CREATED_AT`
+* `CREATED_BY`
+* `CREATED_FROM`
+* `UPDATED_AT`
+* `UPDATED_BY`
+* `UPDATED_FROM`
+
+### `CDS_ACCOUNT`
+
+* `ACCOUNT_ID`
+* `CUSTOMER_ID`
+* `CURRENCY`
+* `STATUS`
+* `SOD_BALANCE`
+* `RUNNING_BALANCE`
+* `WORKING_BALANCE`
+* `PROJECTED_BALANCE`
+* `COB_DATE`
+* Audit fields
+* `POSTING_RESTRICT_CODE`
+* `POSTING_RESTRICT_DESC`
+* `ACCOUNT_TYPE_CODE`
+
+### `CDS_CUSTOMER`
+
+* `CUSTOMER_ID`
+* `GEMS_ID`
+* `CUSTOMER_NAME`
+* `DLOD_LIMIT`
+* `OD_LIMIT`
+* `MASTER_COMPANY`
+* `NET_POSITION`
+* Audit fields
+* `POSTING_RESTRICT_CODE`
+* `POSTING_RESTRICT_DESC`
+
+### `CDS_DISPO`
+
+* `DISPO_ID`
+* `INBOUNDMESSAGE_ID`
+* `DISPO_TYPE`
+* `DISPO_STATUS`
+* `REASON`
+* Audit fields
+
+Use the exact database column types and constraints discovered in the existing schema.
+
+### Database relationship rules
+
+Verify actual foreign keys, joins, and cardinality before implementing queries.
+
+Potential relationships to validate:
+
+* Posting request inbound message ID to disposition inbound message ID.
+* Debit account ID and credit account ID to account ID, as separate joins.
+* Account customer ID to customer ID.
+
+Prevent duplicate posting-request counts when a request has multiple dispositions. Do not assume unverified relationships or status meanings.
+
+**Never expose `HELD_PAYLOAD` or other sensitive payload content in dashboard views, logs, or API responses unless explicitly authorized and required.**
+
+## 5. Backend Integration
+
+Use the existing Spring Boot backend and its current architecture.
+
+* Follow existing controller, service, repository/DAO, DTO, and exception-handling conventions.
+* Reuse existing Oracle configuration and connection management.
+* Add only the APIs required by the new dashboard.
+* Use server-side filtering, sorting, and pagination for large datasets.
+* Use `BigDecimal` for monetary values.
+* Handle nullable columns and timestamps safely.
+* Avoid N+1 queries and inefficient full-table reads.
+* Do not introduce new database tables or modify the schema without approval.
+* Do not implement approve, reject, release, or other state-changing operations unless the existing business rules and authorization explicitly support them.
+
+Possible API endpoints, subject to existing naming conventions:
+
+* `GET /api/dashboard/summary`
+* `GET /api/dashboard/posting-status`
+* `GET /api/dashboard/posting-activity`
+* `GET /api/dashboard/disposition-summary`
+* `GET /api/posting-requests`
+* `GET /api/posting-requests/{inboundMessageId}`
+* `GET /api/customers`
+* `GET /api/customers/{customerId}`
+* `GET /api/accounts`
+* `GET /api/accounts/{accountId}`
+* `GET /api/dispositions`
+
+Confirm endpoint names, identifier semantics, filters, and response structures before implementation.
+
+## 6. Data Accuracy and Mock Data
+
+The current database may contain only a small number of records. The dashboard must work correctly with zero, one, or many records.
+
+* Build the UI to support real backend data.
+* Use mock data only for development, demos, or when explicitly enabled.
+* Clearly label mock mode as **DEMO DATA** or equivalent.
+* Keep mock and production data paths separate.
+* Never insert fake demo data into production tables.
+* Do not fabricate production totals, activity trends, queue lag, customer counts, or operational states.
+* If there is insufficient real data for a chart, show an appropriate empty state or a clear “insufficient data” message.
+* Derive metrics only from verified data and confirmed business definitions.
+
+## 7. UI/UX Quality Requirements
+
+Create a polished, modern, professional dashboard using the existing framework’s capabilities.
+
+* Clear visual hierarchy and consistent spacing.
+* Responsive layout for supported screen sizes.
+* Attractive KPI cards with restrained color accents and appropriate icons.
+* Clean tables with readable typography, status badges, and useful filters.
+* Clear loading, empty, and error states.
+* Accessible controls, keyboard navigation, and sufficient color contrast.
+* Avoid unnecessary animations, excessive gradients, visual clutter, and oversized components.
+* Reuse existing components where practical, but avoid forcing unsuitable legacy components into the new dashboard if a compatible modular implementation is possible.
+* Keep dashboard components maintainable and isolated from unrelated existing screens.
+
+## 8. Implementation Process
+
+Work incrementally.
+
+### Phase 1 — Inspect
+
+* Review the existing project and identify the frontend stack and build process.
+* Review the Spring Boot structure and Oracle configuration.
+* Inspect the current schema and verify relationships.
+* Identify reusable components and any framework limitations.
+
+### Phase 2 — Plan
+
+* Propose the dashboard structure and component breakdown.
+* Define the theme approach compatible with the existing frontend.
+* Define API contracts and data mappings.
+* Identify any dependencies that are missing and verify compatibility before adding them.
+
+### Phase 3 — Implement
+
+* Add the dashboard route/page within the existing frontend.
+* Implement the default existing theme and three additional themes.
+* Build reusable dashboard components.
+* Implement or extend backend APIs as required.
+* Connect the UI to backend data and maintain a clearly separated mock mode.
+
+### Phase 4 — Validate
+
+* Verify the existing application still builds and works.
+* Test the new dashboard with zero, one, and multiple records.
+* Test filters, pagination, sorting, and details.
+* Test all four themes across dashboard components.
+* Verify SQL results, joins, aggregation accuracy, and API error handling.
+* Confirm no unrelated existing functionality has been broken.
+
+## 9. Required Deliverables
+
+Provide:
+
+1. A brief summary of the existing frontend stack discovered in the repository.
+2. A list of any dependencies needed, with compatibility justification.
+3. The proposed dashboard component and file structure.
+4. The API contracts and Oracle queries required.
+5. The implementation of the CDS Dashboard within the existing project.
+6. The four-theme implementation, with the existing application design as default.
+7. Mock-data support separated from real backend data.
+8. Build and testing instructions.
+9. A summary of files created or modified and any assumptions requiring confirmation.
+
+## Final Instruction
+
+**Extend the existing application; do not create a separate frontend project. Reuse the current frontend framework, internal SSC-CDT4 setup, Spring Boot backend, and Oracle configuration. Add the CDS Control Tower Dashboard as a modular new dashboard with the existing application design as its default theme and three additional soft, warm, premium themes. Inspect first, verify compatibility, and then implement incrementally without breaking existing functionality.**
