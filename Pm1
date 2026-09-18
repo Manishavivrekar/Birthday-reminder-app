@@ -1,3 +1,11 @@
+Phase 4 — Theme system and UI foundation
+
+Implement all four themes, theme switching, design tokens, header, navigation, cards, buttons, tables, badges, and responsive layouts.
+
+Phase 5 — Mock dashboard
+
+Build the dashboard with clearly labeled mock data so the visual design and interactions can be reviewed before backend integration.
+
 Phase 6 — Backend integration
 
 Connect the frontend to the existing Spring Boot APIs and Oracle-backed services. Implement or adjust only the necessary backend endpoints.
