@@ -1,0 +1,531 @@
+Master Prompt: CDS Control Tower — Full-Stack Development
+
+Standalone React UI + Existing Spring Boot Backend + Premium Multi-Theme Design
+
+Act as a Senior Full-Stack Engineer, React Architect, Spring Boot Developer, Oracle SQL Engineer, and Enterprise UI/UX Designer.
+
+I am developing a CDS Control Tower application. I want a modern, professional, colorful, interactive dashboard while reusing my existing Spring Boot backend and its Oracle database configuration.
+
+The existing application uses an older internal "ssc-cdt4" framework, which may not support modern frontend technologies or styling properly. Therefore, I want the dashboard frontend to be a separate, standalone React application with its own "package.json", dependencies, source code, and build process, integrated into the existing Spring Boot project through Maven/npm scripting.
+
+The solution must be modular, maintainable, compatible with the existing backend, and easy to plug in without unnecessarily changing existing backend functionality.
+
+---
+
+1. First: Inspect the Existing Project
+
+Before making any changes:
+
+- Inspect the complete project structure, "pom.xml", existing frontend configuration, Java/Spring Boot versions, Node/npm versions, and current build scripts.
+- Identify how the existing "ssc-cdt4" framework is used and which parts of it must remain untouched.
+- Inspect existing Oracle DB configuration, entity/model classes, repositories, services, controllers, and API conventions.
+- Identify existing Maven plugins and determine how a standalone React build can be integrated.
+- Do not assume that the latest versions of React, Vite, Tailwind CSS, or other libraries are compatible with the existing environment.
+- Check available versions and dependencies in the organization’s npm registry before selecting the stack.
+- Reuse existing backend DB configuration and services wherever possible.
+
+Do not overwrite or migrate the existing application architecture without a clear reason.
+
+First provide an implementation plan and explain the proposed folder structure, integration approach, and compatibility considerations. Then implement incrementally.
+
+---
+
+2. Frontend Architecture: Standalone React UI + Existing Backend
+
+Create a separate React frontend application that can be developed and built independently but served through the existing Spring Boot application.
+
+Required architecture
+
+- React frontend with its own "package.json".
+- Modern React-compatible build tooling, preferably Vite if supported by the organization’s environment.
+- Tailwind CSS for modern styling, responsive layouts, themes, spacing, and design consistency.
+- Reusable React components and a clear page/component structure.
+- A dedicated API service layer for communication with Spring Boot.
+- Environment-based API configuration.
+- The frontend must not directly connect to Oracle DB.
+- Spring Boot remains responsible for DB access, business logic, APIs, and security.
+- The frontend must work independently during development and be bundled into the Spring Boot application for deployment.
+
+Suggested structure
+
+Adapt this structure to the existing project after inspecting it:
+
+existing-backend/
+├── pom.xml
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── ... existing Spring Boot code
+│       └── resources/
+│           └── ... existing backend resources
+│
+└── cds-control-tower-ui/
+    ├── package.json
+    ├── package-lock.json
+    ├── vite.config.js
+    ├── index.html
+    ├── tailwind.config.js        # only if required by selected Tailwind version
+    ├── src/
+    │   ├── components/
+    │   ├── pages/
+    │   ├── layouts/
+    │   ├── services/
+    │   ├── hooks/
+    │   ├── themes/
+    │   ├── utils/
+    │   ├── styles/
+    │   ├── App.jsx
+    │   └── main.jsx
+    └── ...
+
+The structure is a starting point. Adjust it based on the actual Tailwind version and project setup.
+
+Maven/npm integration
+
+Configure the existing Maven build to:
+
+1. Install or use the required Node/npm environment in a controlled, reproducible way.
+2. Run the frontend dependency installation and production build.
+3. Copy the generated frontend assets into the appropriate Spring Boot static-resource location.
+4. Package the React UI together with the existing backend application.
+5. Preserve the ability to run the frontend independently during development.
+
+Use the existing Maven conventions and available plugins. Do not add unnecessary plugins or change Java/Spring Boot versions unless required and approved.
+
+Ensure the build supports the organization’s npm registry, internal network restrictions, and lockfile-based reproducibility.
+
+---
+
+3. Verify Required Packages in the Organization’s npm Registry
+
+Before choosing dependencies, verify that each required package and compatible version is available through the organization’s configured npm registry.
+
+Inspect:
+
+- Current registry configuration using "npm config get registry".
+- ".npmrc" configuration and any organization-specific registry settings.
+- Node.js and npm versions.
+- Package availability, versions, peer dependencies, and compatibility.
+- Whether the registry has cached or approved versions of required packages.
+
+Check availability for the proposed stack, including:
+
+- "react"
+- "react-dom"
+- "vite"
+- "@vitejs/plugin-react"
+- "tailwindcss"
+- Tailwind’s required Vite integration package for the selected version
+- "lucide-react" for icons
+- A charting library such as "recharts"
+- "axios" or the project’s existing HTTP client, if appropriate
+
+Use registry commands such as:
+
+npm config get registry
+node --version
+npm --version
+npm view react versions
+npm view vite versions
+npm view tailwindcss versions
+npm view lucide-react versions
+npm view recharts versions
+npm view axios versions
+
+Also verify the required package metadata and peer dependencies for the exact versions selected.
+
+Do not assume that a package is available merely because it exists on the public npm registry. Use the registry configured in the organization.
+
+If a package is unavailable, identify an approved alternative or ask before introducing a new dependency.
+
+Deliver a dependency compatibility report showing the selected package versions, registry availability, compatibility notes, and any alternatives considered.
+
+---
+
+4. Frontend Technology Stack
+
+Recommend and implement a modern, maintainable stack based on actual project compatibility.
+
+Preferred direction:
+
+- React — component-based frontend.
+- Vite — frontend development server and production build, if compatible.
+- Tailwind CSS — responsive styling and theme implementation.
+- Lucide React — consistent modern icons.
+- Recharts — dashboard charts, if compatible and available.
+- Axios or existing API client — backend communication.
+- React Router — only if multiple routes/pages are required.
+
+Avoid adding a large UI component library unless there is a clear benefit and it is compatible with the organization’s registry.
+
+Do not mix Bootstrap and Tailwind unnecessarily. Avoid depending on the legacy "ssc-cdt4" styling framework for the new dashboard.
+
+Use stable, mutually compatible package versions rather than automatically choosing the latest versions.
+
+---
+
+5. Color System and Premium Multi-Theme Support
+
+Use the uploaded CDS Control Tower screenshots as visual inspiration for the dashboard’s layout, information density, cards, posting-flow visualization, customer views, activity feeds, and overall control-tower experience.
+
+Create four complete application themes:
+
+1. Ocean Blue — default theme, inspired by the reference screenshots.
+2. Soft Emerald — modern, soft, calm, and refined.
+3. Warm Sand — warm, premium, and comfortable.
+4. Royal Violet — modern, elegant, and premium.
+
+The themes must be visually distinct while maintaining the same layout, accessibility, status meaning, and usability.
+
+Theme design requirements
+
+Theme 1: Ocean Blue — Default
+
+- Deep navy primary color.
+- Blue accents and blue-gray backgrounds.
+- White or near-white cards.
+- Subtle shadows, clean borders, and professional enterprise styling.
+
+Theme 2: Soft Emerald
+
+- Soft emerald and teal accents.
+- Muted mint or green-gray backgrounds.
+- Calm, polished appearance.
+- Avoid overly bright or saturated green surfaces.
+
+Theme 3: Warm Sand
+
+- Warm ivory, sand, beige, and muted taupe surfaces.
+- Refined amber or terracotta accents.
+- Comfortable contrast and premium visual warmth.
+- Avoid a dull or overly brown appearance.
+
+Theme 4: Royal Violet
+
+- Muted violet and indigo accents.
+- Soft lavender-gray surfaces.
+- Elegant, modern, premium appearance.
+- Avoid overly saturated purple backgrounds.
+
+Theme implementation
+
+- Create a theme selector in the application header.
+- Show theme names and visual color swatches.
+- Switching themes must update the entire application instantly.
+- Use CSS variables or a centralized theme-token system.
+- Apply themes consistently to headers, navigation, cards, charts, tables, buttons, badges, dialogs, tooltips, and empty/error states.
+- Keep semantic status colors consistent across all themes:
+  - Success/approved: green.
+  - Held/pending/warning: amber.
+  - Rejected/error: red.
+  - Informational: blue.
+- Ensure accessible contrast and visible keyboard focus.
+- Persist the selected theme in "localStorage".
+- Use Ocean Blue as the default theme.
+- Do not hardcode theme-specific colors throughout individual components.
+
+Implement all four themes as a complete design system, not just as a header color change.
+
+---
+
+6. UI Design Direction
+
+Build a modern enterprise fintech Control Tower dashboard that is visually polished, information-rich, and easy to understand.
+
+Use the reference screenshots for functional inspiration, but improve the visual quality and consistency.
+
+Design requirements:
+
+- Clean, compact application header.
+- Clear page hierarchy and navigation.
+- Colorful but professional KPI cards.
+- Soft backgrounds and elevated white/near-white content cards.
+- Rounded corners, subtle shadows, refined borders, and consistent spacing.
+- Clear typography and readable numeric metrics.
+- Modern icons and meaningful status badges.
+- Responsive desktop, tablet, and mobile layouts.
+- Charts with useful legends, tooltips, and accessible labels.
+- Consistent spacing, alignment, and component sizing.
+- Avoid oversized empty areas, clutter, excessive gradients, and decorative elements that reduce readability.
+- Use gradients selectively for emphasis, not as a background for every component.
+
+The dashboard should look like a polished operational banking application, not a generic admin template.
+
+---
+
+7. CDS Control Tower — Functional Scope
+
+Create the dashboard around the following areas, using only business data and behavior supported by the existing application or confirmed requirements.
+
+A. Dashboard overview
+
+Provide a high-level operational view containing:
+
+- Posting request overview.
+- Posting status distribution.
+- Disposition summary.
+- Account and customer overview.
+- Recent posting requests.
+- Operational activity, if reliable timestamps and event data are available.
+
+Do not invent operational metrics or imply that unavailable data is live.
+
+B. Posting flow
+
+Create a visual posting pipeline inspired by the screenshots, showing stages only where their meaning and data are confirmed.
+
+Potential stages include received, decisioning, held, rejected, approved, and forwarded to ledger.
+
+- Make stages clickable when corresponding detail data is available.
+- Clicking a stage should open or filter the relevant posting requests.
+- Show counts only when they can be calculated correctly from the backend.
+- Do not assume that a particular database status maps to a stage without verifying its business meaning.
+
+C. Posting requests explorer
+
+Provide a searchable, filterable, paginated posting request table.
+
+Potential columns, depending on available data:
+
+- Request ID.
+- Inbound message ID.
+- CDS fund transfer ID.
+- Debit account ID.
+- Credit account ID.
+- Amount and currency.
+- Posting status.
+- Related disposition status.
+- Created timestamp.
+
+Requirements:
+
+- Server-side pagination, sorting, and filtering for large datasets.
+- Search by supported identifiers.
+- Row selection or details view for deeper investigation.
+- Clear loading, empty, and error states.
+- Do not expose sensitive payload content.
+
+D. Customer overview
+
+Provide customer search and details using confirmed customer data.
+
+Potential information:
+
+- Customer ID and name.
+- GEMS ID.
+- Master company.
+- DLOD and overdraft limits.
+- Net position.
+- Posting restrictions.
+- Related accounts and dispositions, if supported by verified relationships.
+
+Do not display customer counts, utilization percentages, or risk labels unless their calculation and business meaning are confirmed.
+
+E. Account overview
+
+Provide account search and details.
+
+Potential information:
+
+- Account ID.
+- Customer relationship.
+- Currency.
+- Account status.
+- SOD, running, working, and projected balances.
+- COB date.
+- Posting restriction details.
+
+Use correct currency formatting and handle missing values.
+
+F. Disposition overview
+
+Provide a disposition list and detail view using confirmed disposition types, statuses, reasons, and identifiers.
+
+Do not invent approval, waiver, release, or rejection actions. Only implement state-changing operations if the existing backend explicitly supports them and authorization requirements are understood.
+
+G. Activity feed
+
+Display events only if reliable activity/event data exists.
+
+- Distinguish actual backend events from simulated demo events.
+- Show timestamps and relevant identifiers where available.
+- Do not fabricate real-time activity or imply that mock events came from production.
+
+---
+
+8. Existing Oracle Database Schema
+
+Use the following tables as the initial data model. Inspect the actual database, existing Java entities, and constraints before implementing queries or relationships.
+
+"CDS_POSTING_REQUEST"
+
+- "INBOUNDMESSAGE_ID VARCHAR2(25) NOT NULL"
+- "REQUEST_ID VARCHAR2(90) NOT NULL"
+- "CDS_FUNDTRANSFER_ID VARCHAR2(50)"
+- "DR_ACCOUNT_ID VARCHAR2(50)"
+- "CR_ACCOUNT_ID VARCHAR2(50)"
+- "AMOUNT NUMBER(21,4)"
+- "CURRENCY VARCHAR2(10)"
+- "STATUS VARCHAR2(20)"
+- "DESCRIPTION VARCHAR2(500)"
+- "RESPONSE_INBOUND_ID VARCHAR2(25)"
+- "PAUSE VARCHAR2(5)"
+- "HELD_PAYLOAD CLOB"
+- "CREATED_AT TIMESTAMP(6) NOT NULL"
+- "CREATED_BY VARCHAR2(30) NOT NULL"
+- "CREATED_FROM VARCHAR2(100) NOT NULL"
+- "UPDATED_AT TIMESTAMP(6)"
+- "UPDATED_BY VARCHAR2(30)"
+- "UPDATED_FROM VARCHAR2(100)"
+
+"CDS_ACCOUNT"
+
+- "ACCOUNT_ID VARCHAR2(50) NOT NULL"
+- "CUSTOMER_ID VARCHAR2(50)"
+- "CURRENCY VARCHAR2(10)"
+- "STATUS VARCHAR2(20)"
+- "SOD_BALANCE NUMBER(21,4)"
+- "RUNNING_BALANCE NUMBER(21,4)"
+- "WORKING_BALANCE NUMBER(21,4)"
+- "PROJECTED_BALANCE NUMBER(21,4)"
+- "COB_DATE TIMESTAMP(6)"
+- Audit fields: created fields required; updated fields nullable.
+- "POSTING_RESTRICT_CODE VARCHAR2(5 CHAR)"
+- "POSTING_RESTRICT_DESC VARCHAR2(500 CHAR)"
+- "ACCOUNT_TYPE_CODE VARCHAR2(500 CHAR)"
+
+"CDS_CUSTOMER"
+
+- "CUSTOMER_ID VARCHAR2(50) NOT NULL"
+- "GEMS_ID VARCHAR2(30)"
+- "CUSTOMER_NAME VARCHAR2(150) NOT NULL"
+- "DLOD_LIMIT NUMBER(21,4)"
+- "OD_LIMIT NUMBER(21,4)"
+- "MASTER_COMPANY VARCHAR2(20)"
+- "NET_POSITION NUMBER(21,4)"
+- Audit fields: created fields required; updated fields nullable.
+- "POSTING_RESTRICT_CODE VARCHAR2(5 CHAR)"
+- "POSTING_RESTRICT_DESC VARCHAR2(500 CHAR)"
+
+"CDS_DISPO"
+
+- "DISPO_ID VARCHAR2(50) NOT NULL"
+- "INBOUNDMESSAGE_ID VARCHAR2(50) NOT NULL"
+- "DISPO_TYPE VARCHAR2(20) NOT NULL"
+- "DISPO_STATUS VARCHAR2(20) NOT NULL"
+- "REASON VARCHAR2(90)"
+- Audit fields: created fields required; updated fields nullable.
+
+Relationship verification
+
+Potential relationships to verify:
+
+- Posting request "INBOUNDMESSAGE_ID" to disposition "INBOUNDMESSAGE_ID".
+- Posting request "DR_ACCOUNT_ID" to account "ACCOUNT_ID".
+- Posting request "CR_ACCOUNT_ID" to account "ACCOUNT_ID".
+- Account "CUSTOMER_ID" to customer "CUSTOMER_ID".
+
+Verify actual primary keys, foreign keys, cardinality, and join behavior. Do not assume these relationships are enforced.
+
+Avoid duplicate posting-request counts when one request has multiple dispositions. Use appropriate aggregation, "EXISTS", or deduplicated joins.
+
+Never expose "HELD_PAYLOAD" in general dashboard responses. Only expose it if there is an explicitly authorized, secured, and approved use case.
+
+---
+
+9. Spring Boot Backend Requirements
+
+Reuse the existing Spring Boot backend and Oracle configuration.
+
+- Follow the project’s current layered architecture and conventions.
+- Keep database logic in repositories/DAO layers.
+- Keep business logic in services.
+- Use DTOs for frontend responses.
+- Keep controllers focused on HTTP request/response handling.
+- Use "BigDecimal" for monetary values.
+- Handle nullable database fields and timestamps correctly.
+- Use server-side pagination and filtering where needed.
+- Avoid N+1 query patterns and inefficient joins.
+- Do not expose database entities directly if the project convention uses DTOs.
+- Do not create fake database records for demonstration.
+
+Suggested API endpoints, subject to existing conventions and identifier verification:
+
+GET /api/dashboard/summary
+GET /api/dashboard/posting-status
+GET /api/dashboard/posting-activity
+GET /api/dashboard/disposition-summary
+
+GET /api/posting-requests
+GET /api/posting-requests/{inboundMessageId}
+
+GET /api/customers
+GET /api/customers/{customerId}
+
+GET /api/accounts
+GET /api/accounts/{accountId}
+
+GET /api/dispositions
+
+Use actual supported fields and query parameters. Confirm whether "INBOUNDMESSAGE_ID" is unique before using it as a detail endpoint identifier.
+
+---
+
+10. Mock Data and Real Data Separation
+
+The database currently has only a small number of records. The dashboard must work correctly with zero, one, or many real records.
+
+Implement a clear separation between:
+
+- Real API mode — data retrieved from the existing Spring Boot backend.
+- Mock/demo mode — realistic illustrative data used for design, development, and demonstrations.
+
+Requirements:
+
+- Display a visible "DEMO DATA" or equivalent indicator in mock mode.
+- Never mix mock data with real database results.
+- Never insert fake demo rows into production tables.
+- Keep mock data in a separate frontend module or mock API layer.
+- Use varied mock data only to demonstrate layouts, filters, charts, and interactions.
+- Do not display illustrative counts or trends as real operational data.
+- Ensure the UI handles empty datasets gracefully.
+- Do not create misleading charts from one real record.
+
+---
+
+11. Frontend API Integration
+
+- Create a centralized API client and service modules.
+- Configure the backend base URL using environment variables.
+- Support local development with the React dev server and Spring Boot backend.
+- Configure proxy or CORS only as required by the existing application.
+- Include loading indicators, error messages, empty states, and retry behavior where appropriate.
+- Avoid making duplicate API calls unnecessarily.
+- Keep API response mapping and formatting separate from UI components.
+- Ensure filters and pagination reflect backend query results.
+- Do not hardcode production API URLs.
+
+---
+
+12. Security, Quality, and Performance
+
+- Follow existing authentication and authorization mechanisms.
+- Do not expose secrets or database credentials in frontend files.
+- Do not include sensitive payloads in logs or general API responses.
+- Validate user inputs on the backend.
+- Avoid unnecessary dependencies.
+- Use accessible labels, keyboard navigation, focus states, and sufficient color contrast.
+- Optimize large tables using server-side pagination.
+- Keep components reusable and maintainable.
+- Add tests for API services, important UI behavior, and backend logic where the project supports testing.
+
+---
+
+13. Implementation Phases
+Work incrementally and verify each phase before moving forward.
+Phase 1 — Project inspection
+Inspect the existing project, identify constraints, and document the current build and backend structure.
+Phase 2 — Dependency and registry verification
+Check npm registry access, Node/npm versions, package availability, peer dependencies, and compatible versions.
+Phase 3 — Frontend setup
+Create the standalone React project with its own package.json, build tooling, Tailwind CSS, and reusable structure.document the current build and backend str
