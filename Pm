@@ -528,4 +528,64 @@ Inspect the existing project, identify constraints, and document the current bui
 Phase 2 — Dependency and registry verification
 Check npm registry access, Node/npm versions, package availability, peer dependencies, and compatible versions.
 Phase 3 — Frontend setup
-Create the standalone React project with its own package.json, build tooling, Tailwind CSS, and reusable structure.document the current build and backend str
+Create the standalone React project with its own package.json, build tooling, Tailwind CSS, and reusable structure.
+
+Phase 4 — Theme system and UI foundation
+
+Implement all four themes, theme switching, design tokens, header, navigation, cards, buttons, tables, badges, and responsive layouts.
+
+Phase 5 — Mock dashboard
+
+Build the dashboard with clearly labeled mock data so the visual design and interactions can be reviewed before backend integration.
+
+Phase 6 — Backend integration
+
+Connect the frontend to the existing Spring Boot APIs and Oracle-backed services. Implement or adjust only the necessary backend endpoints.
+
+Phase 7 — Maven integration
+
+Configure the Maven/npm build process so the standalone React UI is packaged with the existing Spring Boot application.
+
+Phase 8 — Validation
+
+Test frontend development mode, production build, Maven packaging, API integration, theme persistence, responsive layouts, and zero/one/many record scenarios.
+
+14. Expected Deliverables
+
+Provide:
+
+Existing project architecture assessment.
+
+Recommended frontend stack with compatibility reasoning.
+
+npm registry and dependency availability report.
+
+Proposed and final folder structure.
+
+Standalone React application with its own package.json.
+
+Complete four-theme design system.
+
+Dashboard pages and reusable components.
+
+Backend API and DTO changes, only where required.
+
+Oracle query/repository implementation based on verified schema relationships.
+
+Maven/npm integration configuration.
+
+Setup and run instructions for frontend-only development.
+
+Instructions for building and running the complete Spring Boot application.
+
+Testing and validation results.
+
+A list of assumptions, limitations, and any decisions requiring confirmation.
+
+Final implementation rule
+
+Keep the existing Spring Boot backend and Oracle configuration as the foundation. Build the new dashboard as a modern, standalone React frontend with its own dependencies and build process, then integrate its production assets into the existing Maven/Spring Boot application.
+
+Prioritize compatibility, separation of concerns, accurate data, maintainability, and a polished enterprise UI. Do not rewrite existing backend functionality or invent business rules just to make the dashboard look complete.</WritingBlock>
+
+Tip: Give this prompt to your coding assistant while the full existing project is open in the workspace. Ask it to complete Phase 1 and Phase 2 first and show you the findings before it starts changing files.
