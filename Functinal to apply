@@ -1,0 +1,160 @@
+CDS Control Tower — Complete Existing Dashboard to Match Sample HTML
+
+Act as a senior React developer, UI/UX engineer, and full-stack developer. The CDS Control Tower dashboard has already been created, but the current implementation is incomplete. Several interactions and functional features available in my sample HTML file are missing.
+
+Your task is to enhance and complete the existing implementation, not redesign it from scratch.
+
+1. Treat the Sample HTML as the Functional Reference
+
+First, inspect the complete sample HTML file and all related JavaScript, CSS, and interaction logic.
+
+Then compare it with the current CDS Control Tower implementation and identify:
+
+- Missing UI sections and components.
+- Missing click handlers and interactive behavior.
+- Missing drawers, modals, filters, sorting, search, pagination, and detail views.
+- Missing KPI interactions and navigation behavior.
+- Any differences in layout, data presentation, or user experience.
+
+Use the sample HTML as the source of truth for expected functionality and interaction behavior. Preserve its existing features unless they conflict with the current application's architecture or an explicitly stated requirement.
+
+Do not assume that a feature is unnecessary simply because it is not implemented in the current React version.
+
+2. Implement All Missing Functionality
+
+KPI Cards
+
+- Make every KPI card clickable wherever the sample HTML supports it.
+- On KPI click, open the corresponding right-side drawer.
+- The drawer must display the relevant records and details for the selected KPI.
+- Include the appropriate title, count, data table or list, status information, and available actions as shown in the sample.
+- Support closing the drawer using the close button, backdrop click, and Escape key where appropriate.
+- Ensure the drawer is responsive and does not break the dashboard layout.
+- Reuse a common drawer component where practical, with content configured for each KPI.
+
+Dashboard Tabs and Sections
+
+Implement all tabs and their expected behavior from the sample HTML, including:
+
+- Overview
+- Posting Requests
+- Customers
+- Accounts
+- Dispositions
+
+Each tab must display the correct content and support the interactions shown in the sample. Switching tabs must preserve expected filters or state where appropriate.
+
+Tables and Data Exploration
+
+Implement all applicable table features from the sample HTML:
+
+- Search and filtering.
+- Sorting.
+- Pagination.
+- Row selection or row click behavior.
+- Detailed record views.
+- Status badges and disposition information.
+- Empty, loading, and error states.
+
+Ensure table actions work with actual application data. Do not add decorative controls that do nothing.
+
+Other Interactive Features
+
+Inspect the sample HTML and implement every other relevant interaction, including:
+
+- Search across supported entities.
+- Refresh behavior.
+- Theme switching.
+- Demo-data toggle behavior.
+- Posting flow interactions.
+- Disposition queue interactions.
+- Customer and account detail views.
+- Any right-side drawers, popovers, modals, or expandable sections.
+
+Do not limit the implementation to the examples above. Audit the entire sample HTML and implement all relevant functionality that exists there.
+
+3. Preserve the Existing Application Architecture
+
+This dashboard is being added to an existing application.
+
+- Use the existing frontend framework, libraries, components, routing, styling conventions, and build configuration.
+- Preserve the existing "ssc-cdt4" framework and current "package.json".
+- Do not create a separate React project or introduce a new frontend build pipeline.
+- Do not replace or upgrade existing dependencies without approval.
+- Reuse existing application layouts, navigation, authentication, API utilities, and shared components where applicable.
+- Keep the CDS dashboard modular and isolated so unrelated application features are not affected.
+- Inspect the repository before making architectural assumptions.
+
+4. White-Dominant Color Design — Applies to Every Theme
+
+The current implementation should retain its overall layout and functionality, but improve the color treatment to match the requested visual direction.
+
+All themes must use a white-dominant design. Theme switching should change accent colors and subtle tints—not turn the dashboard into a fully colored or dark page.
+
+Apply these rules to every theme:
+
+- Use white ("#FFFFFF") for cards, tables, drawers, modals, and primary content surfaces.
+- Use very light, subtle background tints that complement the selected theme.
+- Use theme colors selectively for buttons, active tabs, icons, KPI accents, chart highlights, selected rows, and interactive states.
+- Use soft tinted backgrounds for badges, icon containers, and selected states.
+- Maintain subtle borders, soft shadows, consistent spacing, and a clean enterprise-fintech appearance.
+- Preserve semantic status colors: green for success, amber for pending/held/warning, red for rejected/error, and blue for informational states.
+- Ensure readable contrast and accessibility.
+
+Themes
+
+1. Existing Application Default: Preserve the current application's design language and make the dashboard white-dominant.
+2. Soft Modern Blue: White surfaces, pale blue-gray background, restrained blue accents.
+3. Warm Premium: White surfaces, soft warm-ivory background, muted amber or terracotta accents.
+4. Soft Modern Green: White surfaces, pale mint-gray background, muted green accents.
+
+Aim for approximately 75–85% white or near-white surfaces. Avoid saturated full-page backgrounds, excessive gradients, neon colors, or dark full-page themes.
+
+Ensure the same color rules apply consistently to KPI cards, tables, right-side drawers, modals, filters, charts, badges, and every other dashboard component in every theme.
+
+5. Data and Backend Integration
+
+- Use the existing backend APIs and database integration wherever available.
+- Inspect existing endpoints, DTOs, and data models before creating new ones.
+- Ensure KPI counts and drawer records are consistent with the underlying data.
+- Apply filters and search to the correct dataset.
+- Avoid duplicate counting when records have multiple related dispositions.
+- Do not invent status meanings, business rules, or lifecycle transitions.
+- Do not expose sensitive payload fields by default.
+- If demo data is enabled, clearly indicate that the displayed data is demo data and keep it separate from production data.
+- Handle zero, one, and multiple records correctly.
+
+If a feature in the sample HTML has no corresponding backend API, implement the UI structure and clearly identify the missing API or data dependency. Do not silently fake production behavior.
+
+6. Implementation Approach
+
+Follow this sequence:
+
+1. Inspect the sample HTML and current React implementation.
+2. Create a feature-by-feature comparison checklist.
+3. Identify the missing functionality and affected files.
+4. Implement missing features incrementally using the existing architecture.
+5. Verify each interaction against the sample HTML.
+6. Apply the white-dominant theme rules consistently across all themes.
+7. Test the dashboard with empty, single-record, and multiple-record scenarios.
+8. Run the existing build and relevant tests; fix any regressions caused by the changes.
+
+Before finishing, provide a concise summary of:
+
+- Features implemented.
+- Missing or blocked features and why.
+- Files changed.
+- Build and test results.
+
+Final Acceptance Criteria
+
+The work is complete only when:
+
+- The React dashboard supports all relevant functionality available in the sample HTML.
+- Clicking applicable KPI cards opens the correct right-side drawer with relevant records.
+- Tabs, filters, search, sorting, pagination, detail views, and other sample interactions work as expected.
+- All themes remain white-dominant and visually consistent.
+- The existing application stack and unrelated functionality remain intact.
+- No visible control is left non-functional when the sample HTML defines its behavior.
+
+Important: Do not merely make the current screen look similar to the sample. Reproduce the sample's expected functionality and interactions within the existing application architecture.
